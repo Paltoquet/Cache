@@ -1,5 +1,5 @@
-#define <string.h>
-#define 'strategy.h'
+#include <string.h>
+#include <strategy.h>
 
 
 
