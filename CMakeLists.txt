@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.2)
+
 project(cache)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
@@ -17,3 +18,4 @@ set(SOURCE_FILES
     Cache_Project/tst_Cache.c)
 
 add_executable(cache ${SOURCE_FILES})
+
