@@ -92,7 +92,7 @@ struct Cache
  * \ingroup low_cache_interface
  * 
  * En général un cache est synchroniseé à interval de temps régulier. ici, pour
- * ce simulateur, nous nous contentons d'une synchronisation tous les \c NSYNC
+ * ce simulateur, no        us nous contentons d'une synchronisation tous les \c NSYNC
  * accès au cache.
  */
 #define NSYNC 1000
