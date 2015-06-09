@@ -17,4 +17,4 @@ set(SOURCE_FILES
     Cache_Project/strategy.h
     Cache_Project/tst_Cache.c)
 
-add_executable(cache ${SOURCE_FILES})
+add_executable(cache ${SOURCE_FILES} Cache_Project/NUR_strategy.h)

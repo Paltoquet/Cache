@@ -32,8 +32,11 @@
  * remplacement.
  */
 typedef enum  {
+    VIDE = 0x0,
     VALID = 0x1, //!< le bloc est valide
     MODIF = 0x2, //!< le bloc a été modifié
+    REFER = 0x3, //si le bloc a été référencié.
+    REFER_MODIF = 0x4 // si le bloc a été référencié et modifié.
 } Cache_Flag;
 
 //! Entête de chaque bloc.
@@ -50,7 +53,7 @@ struct Cache_Block_Header
     int ibfile;			//!< Index de ce block dans le fichier.
     int ibcache;		//!< Index de ce block dans le cache.
     char *data; 		//!< Les données de l'utilisateur.
-};
+ };
 
 
 /*! Le cache lui-même.
@@ -92,7 +95,7 @@ struct Cache
  * \ingroup low_cache_interface
  * 
  * En général un cache est synchroniseé à interval de temps régulier. ici, pour
- * ce simulateur, nous nous contentons d'une synchronisation tous les \c NSYNC
+ * ce simulateur, no        us nous contentons d'une synchronisation tous les \c NSYNC
  * accès au cache.
  */
 #define NSYNC 1000
