@@ -32,7 +32,7 @@ void Strategy_Invalidate(struct Cache *pcache){
         tmp=next;
     }
      */
-    pcache->pstrategy=Cache_Liste_Clear((struct Cache_List*)pcache->pstrategy);
+    pcache->pstrategy=Cache_List_Clear((struct Cache_List*)pcache->pstrategy);
     //pcache->pstrategy=Strategy_Create(*cache);
 }
 struct Cache_Block_Header *Strategy_Replace_Block(struct Cache *pcache){

@@ -1,5 +1,6 @@
 #include "low_cache.h"
 #include "cache_list.h"
+#include "strategy.h"
 
 
 /*!
@@ -12,9 +13,6 @@
  * $Id: strategy.h,v 1.3 2008/03/04 16:52:49 jpr Exp $
  */
 
-struct Cache;
-//struct Cache_Block_Header;
-//struct Cache_List;
 
 /*!
  * \defgroup strategy_interface Interface de la stratégie de remplacement
@@ -46,7 +44,7 @@ void Strategy_Close(struct Cache *pcache)
 void Strategy_Invalidate(struct Cache *pcache)
 {
     //lorsque le cache est invalidate, tous les blocs deviennent invalides donc il n'y a plus d'ordre entre les blocs
-    pcache->pstrategy = Cache_List_Create();
+    Cache_List_Clear((struct Cache_List*)pcache->pstrategy);
 }
 
 //! Algorithme de remplacement de bloc.
@@ -54,9 +52,9 @@ void Strategy_Invalidate(struct Cache *pcache)
 struct Cache_Block_Header *Strategy_Replace_Block(struct Cache *pcache)
 {
     Cache_List * blocks = pcache->pstrategy;
-    Cache_Block_Header * block = blocks[0];
+    Cache_Block_Header * block = &blocks[0];
     //on le déplace en bout de ligne
-    Cache_List_Move_To_End(blocks,block);
+    Cache_List_Move_To_End((struct Cache_List *)blocks, (struct Cache_Block_Header *)block);
     //return le plus vieux bloc (premier element de la liste pstrategy)
     return block;
 }
