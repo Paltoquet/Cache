@@ -32,6 +32,7 @@
  * remplacement.
  */
 typedef enum  {
+    VIDE = 0x0,
     VALID = 0x1, //!< le bloc est valide
     MODIF = 0x2, //!< le bloc a été modifié
     REFER = 0x3, //si le bloc a été référencié.

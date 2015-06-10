@@ -1,25 +1,36 @@
 #include <string.h>
-#include <strategy.h>
-
+#include "strategy.h"
 
 
 //! Creation et initialisation de la stratégie (invoqué par la création de cache).
 void *Strategy_Create(struct Cache *pcache){
-
+    pcache->pstrategy = NULL;
+    for( struct Cache_Block_Header *i = pcache->headers;i != NULL; i++ ) {
+        i->flags = Cache_Flag.VIDE;
+    }
+    return NULL;
 }
 
 //! Fermeture de la stratégie.
 void Strategy_Close(struct Cache *pcache){
-
+    pcache->pstrategy = NULL;
+    for( struct Cache_Block_Header *i = pcache->headers;i != NULL; i++ ) {
+        i->flags = Cache_Flag.VIDE;
+    }
 }
 
 //! Fonction "réflexe" lors de l'invalidation du cache.
 void Strategy_Invalidate(struct Cache *pcache){
-
+    pcache->pstrategy = NULL;
+    for( struct Cache_Block_Header *i = pcache->headers;i != NULL; i++ ) {
+        i->flags = Cache_Flag.VIDE;
+    }
 }
 
 //! Algorithme de remplacement de bloc.
 struct Cache_Block_Header *Strategy_Replace_Block(struct Cache *pcache){
+
+    //int* r = (int*) pcache->pstrategy;
 
 }
 
