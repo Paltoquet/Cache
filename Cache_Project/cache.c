@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "cache.h"
 #include "low_cache.h"
+#include "strategy.h"
 
 
 //! Création du cache.
@@ -16,7 +17,6 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
     cache->recordsz = recordsz;
     cache->blocksz = recordsz * nrecords;
     cache->nderef = nderef;
-    cache->pstrategy = NULL;
 
     //init instrument
     struct Cache_Instrument* cacheInstrument = (Cache_Instrument*) malloc(sizeof(struct Cache_Instrument));
@@ -25,16 +25,34 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
     cacheInstrument->n_hits=0;
     cacheInstrument->n_syncs=0;
     cacheInstrument->n_deref=0;
+    cache->instrument = cacheInstrument;
 
     //init Headers
     struct Cache_Block_Header* headers = (struct Cache_Block_Header*) malloc(sizeof(struct Cache_Block_Header)*nblocks);
     cache->pfree = headers;
     cache->headers = headers;
+
+    //strategie
+    cache->pstrategy = Strategy_Create(cache);
 }
 
 //! Fermeture (destruction) du cache.
 Cache_Error Cache_Close(struct Cache *pcache){
+    free(pcache->instrument);
 
+    for( int i = 0; i < pcache->nblocks; i++){
+        free(pcache->headers+i);
+    }
+
+    if( fclose(pcache->fp) == EOF ){
+        return CACHE_KO;
+    }
+
+    Strategy_Close(pcache);
+
+    free( pcache );
+
+    return CACHE_OK;
 }
 
 //! Synchronisation du cache.
