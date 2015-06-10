@@ -1,6 +1,5 @@
-#include "low_cache.h"
 #include "cache_list.h"
-#include "strategy.h"
+#include "low_cache.h"
 
 
 /*!
@@ -39,10 +38,7 @@ void *Strategy_Create(struct Cache *pcache)
 void Strategy_Close(struct Cache *pcache)
 {
     // detruit le contenu
-    Cache_List_Delete(pcache->pstrategy);
-    // libere la memoire associe a la list FIFO
-    free(pcache->pstrategy);
-
+    Cache_List_Delete((struct Cache_List *) pcache->pstrategy);
 }
 
 //! Fonction "réflexe" lors de l'invalidation du cache.
@@ -56,8 +52,13 @@ void Strategy_Invalidate(struct Cache *pcache)
 // Appel si le cache ne possède plus de block libre
 struct Cache_Block_Header *Strategy_Replace_Block(struct Cache *pcache)
 {
-    Cache_List * blocks = pcache->pstrategy;
-    Cache_Block_Header * block = &blocks[0];
+    struct Cache_List * blocks = (struct Cache_List *) pcache->pstrategy;
+    struct Cache_Block_Header * block = Get_Free_Block(pcache);
+    if(!block)
+    {
+        Cache_List_Append((struct Cache_List *) blocks,block);
+        return block;
+    }
     //on le déplace en bout de ligne
     Cache_List_Move_To_End((struct Cache_List *)blocks, (struct Cache_Block_Header *)block);
     //return le plus vieux bloc (premier element de la liste pstrategy)
@@ -67,20 +68,19 @@ struct Cache_Block_Header *Strategy_Replace_Block(struct Cache *pcache)
 //! Fonction "réflexe" lors de la lecture.
 void Strategy_Read(struct Cache *pcache, struct Cache_Block_Header *pb)
 {
-    // deplace le block modifie a la fin de la liste
-    Cache_List_Move_To_End( pcache->pstrategy , pb );
-
+    //rien à faire
 }
 
 //! Fonction "réflexe" lors de l'écriture.
 void Strategy_Write(struct Cache *pcache, struct Cache_Block_Header *pb)
 {
-    Cache_List_Move_To_End( pcache->pstrategy , pb );
+    // on écrit sur un block, le bloc change d'affection
+    // FIFO => deplacement du bloc en queue de list.
+    Cache_List_Move_To_End( (struct Cache_List *) pcache->pstrategy , pb );
 }
 
 //! Identification de la stratégie.
 char *Strategy_Name()
 {
-    malloc(sizeof("FIFO"));
     return "FIFO";
 }
