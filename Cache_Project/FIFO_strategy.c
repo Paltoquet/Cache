@@ -1,83 +1,86 @@
+#include "low_cache.h"
+#include "cache_list.h"
+#include "strategy.h"
+
+
 /*!
- * \file RAND_strategy.c
+ * \file strategy.h
  *
- * \brief  Stratégie de remplacement au hasard..
+ * \brief Interface utilisée par les fonctions de gestion de la stratégie de remplacement.
  *
  * \author Jean-Paul Rigault
  *
- * $Id: RAND_strategy.c,v 1.3 2008/03/04 16:52:49 jpr Exp $
+ * $Id: strategy.h,v 1.3 2008/03/04 16:52:49 jpr Exp $
  */
 
-#include <assert.h>
-
-#include "strategy.h"
-#include "low_cache.h"
-#include "time.h"
 
 /*!
- * FIFO : pas grand chose à faire ici.
+ * \defgroup strategy_interface Interface de la stratégie de remplacement
  *
- * En fait, nous initialisons le germe
- * (seed) du générateur aléatoire à quelque chose d'éminemment variable, pour
- * éviter d'avoir la même séquence à chque exécution...
+ * Ces fonctions sont utilisées par celles de l'API du cache pour gérer la
+ * stratégie de remplacement. Elles sont définies dans les différents fichiers
+ * de stratégie.
+ *
+ * @{
  */
+
+//! Creation et initialisation de la stratégie (invoqué par la création de cache).
 void *Strategy_Create(struct Cache *pcache)
 {
-    // srand((unsigned int)time(NULL));
-    struct Cache_List* cl = Cache_List_Create();
-    for(int i = 0; i < pcache->nblocks; i++) {
-        if(pcache->headers[i]->flags == VALID) Cache_List_Append(cl, pcache->headers[i]);
-    }
-    return cl;
+    /*struct Cache_List* cl = Cache_List_Create();
+        for(int i = 0; i < pcache->nblocks; i++) {
+            if(pcache->headers[i]->flags == VALID) Cache_List_Append(cl, pcache->headers[i]);
+        }
+        return cl;*/
+    return Cache_List_Create();
 }
 
-/*!
- * FIFO : Rien à faire ici.
- */
+//! Fermeture de la stratégie.
 void Strategy_Close(struct Cache *pcache)
 {
+    // detruit le contenu
     Cache_List_Delete(pcache->pstrategy);
+    // libere la memoire associe a la list FIFO
+    free(pcache->pstrategy);
+
 }
 
-/*!
- * FIFO : Rien à faire ici.
- */
+//! Fonction "réflexe" lors de l'invalidation du cache.
 void Strategy_Invalidate(struct Cache *pcache)
 {
+    //lorsque le cache est invalidate, tous les blocs deviennent invalides donc il n'y a plus d'ordre entre les blocs
+    Cache_List_Clear((struct Cache_List*)pcache->pstrategy);
 }
 
-/*!
- * FIFO : On prend le premier bloc invalide. S'il n'y en a plus, on prend un bloc au hasard.
- */
+//! Algorithme de remplacement de bloc.
+// Appel si le cache ne possède plus de block libre
 struct Cache_Block_Header *Strategy_Replace_Block(struct Cache *pcache)
 {
-    int ib;
-    struct Cache_Block_Header *pbh;
-
-    /* On cherche d'abord un bloc invalide */
-    if ((pbh = Get_Free_Block(pcache)) != NULL) return pbh;
-
-    /* Sinon on tire un numéro de bloc au hasard */
-    ib = RANDOM(0, pcache->nblocks);
-    return &pcache->headers[ib];
+    Cache_List * blocks = pcache->pstrategy;
+    Cache_Block_Header * block = &blocks[0];
+    //on le déplace en bout de ligne
+    Cache_List_Move_To_End((struct Cache_List *)blocks, (struct Cache_Block_Header *)block);
+    //return le plus vieux bloc (premier element de la liste pstrategy)
+    return block;
 }
 
-
-/*!
- * FIFO : Rien à faire ici.
- */
-void Strategy_Read(struct Cache *pcache, struct Cache_Block_Header *pbh)
+//! Fonction "réflexe" lors de la lecture.
+void Strategy_Read(struct Cache *pcache, struct Cache_Block_Header *pb)
 {
+    // deplace le block modifie a la fin de la liste
+    Cache_List_Move_To_End( pcache->pstrategy , pb );
+
 }
 
-/*!
- * FIFO : Rien à faire ici.
- */
-void Strategy_Write(struct Cache *pcache, struct Cache_Block_Header *pbh)
+//! Fonction "réflexe" lors de l'écriture.
+void Strategy_Write(struct Cache *pcache, struct Cache_Block_Header *pb)
 {
+    Cache_List_Move_To_End( pcache->pstrategy , pb );
 }
 
+//! Identification de la stratégie.
 char *Strategy_Name()
 {
+    malloc(sizeof("FIFO"));
     return "FIFO";
 }
