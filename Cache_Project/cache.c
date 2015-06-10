@@ -79,7 +79,9 @@ Cache_Error Cache_Sync(struct Cache *pcache){
 
 //! Invalidation du cache.
 Cache_Error Cache_Invalidate(struct Cache *pcache){
-
+    for( int i = 0; i < pcache->nblocks; i++){
+        pcache->headers[i].flags &= ~VALID;
+    }
 }
 
 //! Lecture  (à travers le cache).
