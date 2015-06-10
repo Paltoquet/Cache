@@ -33,7 +33,7 @@ void *Strategy_Create(struct Cache *pcache){
     data_nru.nderef = pcache->nderef;
     pcache->pstrategy = &data_nru;
     init_all_flag(pcache);
-    return NULL;
+    return &data_nru;
 }
 
 //! Fermeture de la stratégie.
