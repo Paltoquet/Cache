@@ -84,6 +84,8 @@ Cache_Error Cache_Invalidate(struct Cache *pcache){
     }
 
     Strategy_Invalidate(pcache);
+
+    return CACHE_OK;
 }
 
 //! Lecture  (à travers le cache).
