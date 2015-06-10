@@ -11,7 +11,7 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
 
     struct Cache* cache = (struct Cache*) malloc(sizeof(struct Cache));
     cache->file = fic;
-    cache->fp = fopen(fic, "r" );
+    cache->fp = fopen(fic, "r+" );
     cache->nblocks = nblocks;
     cache->nrecords = nrecords;
     cache->recordsz = recordsz;
@@ -57,7 +57,24 @@ Cache_Error Cache_Close(struct Cache *pcache){
 
 //! Synchronisation du cache.
 Cache_Error Cache_Sync(struct Cache *pcache){
+    struct Cache_Block_Header* header = NULL;
+    for( int i = 0; i < pcache->nblocks; i++){
 
+        if( (header = pcache->headers+i)->flags & MODIF ){
+
+            if( fseek(pcache->fp, header->ibfile,SEEK_SET ) == EOF ){
+                return CACHE_KO;
+            }
+
+            if( fputs(header->data, pcache->fp ) == EOF){
+                return CACHE_KO;
+            }
+
+            header->flags =& ~MODIF;
+        }
+    }
+
+    return CACHE_OK;
 }
 
 //! Invalidation du cache.
