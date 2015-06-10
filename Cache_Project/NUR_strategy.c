@@ -1,3 +1,7 @@
+
+#include "low_cache.h"
+#include "strategy.h"
+
 typedef struct S_Data_NRU {
     int compteur;
     int nderef;
