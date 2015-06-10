@@ -27,7 +27,7 @@ void init_flag(struct Cache *pcache, int flag){
     struct Cache_Block_Header *headers = pcache->headers;
 
     for( int i = 0;i < pcache->nblocks; i++ ) {
-        headers[i].flags &= ~(1 << (flag-1));
+        headers[i].flags &= ~flag;
     }
 }
 
@@ -60,8 +60,8 @@ struct Cache_Block_Header *Strategy_Replace_Block(struct Cache *pcache){
 
     struct Cache_Block_Header *headers = pcache->headers;
     for( int i = 0; i < pcache->nblocks; i++ ) {
-        int R =  (headers[i].flags & (1 << (REFER-1))) == REFER;
-        int M =  (headers[i].flags & (1 << (MODIF-1))) == MODIF;
+        int R =  (headers[i].flags & REFER ) == REFER;
+        int M =  (headers[i].flags & MODIF ) == MODIF;
         int nb = 2*R+M;
 
         if( headerMin == NULL || nb < nbMin ){
@@ -90,7 +90,6 @@ void Strategy_Write(struct Cache *pcache, struct Cache_Block_Header *pb){
     data_nru.compteur++;
 
     pb->flags |= REFER;
-    pb->flags |= MODIF;
 
     //Remise à zero si nderef est atteint
     if( data_nru.compteur == data_nru.nderef ){

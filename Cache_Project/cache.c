@@ -13,7 +13,7 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
 
     struct Cache* cache = (struct Cache*) malloc(sizeof(struct Cache));
     cache->file = fic;
-    cache->fp = fopen(fic, "r" );
+    cache->fp = fopen(fic, "r+" );
     cache->nblocks = nblocks;
     cache->nrecords = nrecords;
     cache->recordsz = recordsz;
@@ -60,34 +60,84 @@ Cache_Error Cache_Close(struct Cache *pcache){
 
 //! Synchronisation du cache.
 Cache_Error Cache_Sync(struct Cache *pcache){
+
+    struct Cache_Block_Header* header = NULL;
+    for( int i = 0; i < pcache->nblocks; i++){
+
+        if( (header = pcache->headers+i)->flags & MODIF ){
+
+            if( fseek(pcache->fp, header->ibfile,SEEK_SET ) == EOF ){
+                return CACHE_KO;
+            }
+
+            if( fputs(header->data, pcache->fp ) == EOF){
+                return CACHE_KO;
+            }
+
+            header->flags =& ~MODIF;
+        }
+    }
     return CACHE_OK;
 }
 
 //! Invalidation du cache.
 Cache_Error Cache_Invalidate(struct Cache *pcache){
+    for( int i = 0; i < pcache->nblocks; i++){
+        pcache->headers[i].flags &= ~VALID;
+    }
+
+    Strategy_Invalidate(pcache);
+
     return CACHE_OK;
 }
 
 //! Lecture  (à travers le cache).
-Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord)
-{
-    return CACHE_OK;
-}
+Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord){
+
+        struct Cache_Block_Header*  h = pcache->headers;
+        for(int i = 0 ; h->ibfile != irfile && i < pcache->nblocks; h++, i++ );
+
+        if( h->ibfile != irfile ){
+            h = Strategy_Replace_Block(pcache);
+        }
+
+        strcpy(h->data, precord);
+
+        Strategy_Read(pcache, h);
+
+        return CACHE_OK;
+    }
 
 //! Écriture (à travers le cache).
-Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord)
-{
-    // recherche du bloc irfile dans le cache
-    struct Cache_Block_Header *tmp = pcache->headers;
-    struct Cache_Block_Header *next = tmp;
-    int block_courant = 0;
-    int is_in_cache = 0;
+    Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord)
+    {
+        // recherche du bloc irfile dans le cache
+        struct Cache_Block_Header *tmp = pcache->headers;
+        struct Cache_Block_Header *next = tmp;
+        int block_courant = 0;
+        int is_in_cache = 0;
 
-    while ( !is_in_cache && block_courant++ < pcache->nblocks ) {
-        next++;
-        if(next->ibfile == irfile)
+        while ( !is_in_cache && block_courant++ < pcache->nblocks ) {
+            next++;
+            if(next->ibfile == irfile)
+            {
+                // ecrit le contenu du buffer precords dans le block
+                strcpy(next->data,precord);
+                //Modification des flags
+                if(next->flags & 0) // le bloc est invalide
+                    next->flags = VALID ;
+
+                if(next->flags & VALID) // le bloc possede des donnees et on ecrit dessus
+                    next->flags = MODIF ;
+                is_in_cache = 1 ;
+
+
+            }
+        }
+
+        if(!is_in_cache)
         {
-            // ecrit le contenu du buffer precords dans le block
+            next = Strategy_Replace_Block(pcache);
             strcpy(next->data,precord);
             //Modification des flags
             if(next->flags & 0) // le bloc est invalide
@@ -95,43 +145,27 @@ Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord)
 
             if(next->flags & VALID) // le bloc possede des donnees et on ecrit dessus
                 next->flags = MODIF ;
-            is_in_cache = 1 ;
-
-
         }
+
+        //appel a write de la strategie utilise
+        Strategy_Write(pcache,next);
+        return CACHE_OK;
     }
-
-    if(!is_in_cache)
-    {
-        next = Strategy_Replace_Block(pcache);
-        strcpy(next->data,precord);
-        //Modification des flags
-        if(next->flags & 0) // le bloc est invalide
-            next->flags = VALID ;
-
-        if(next->flags & VALID) // le bloc possede des donnees et on ecrit dessus
-            next->flags = MODIF ;
-    }
-
-    //appel a write de la strategie utilise
-    Strategy_Write(pcache,next);
-    return CACHE_OK;
-}
 
 
 //! Résultat de l'instrumentation.
-struct Cache_Instrument *Cache_Get_Instrument(struct Cache *pcache)
-{
+    struct Cache_Instrument *Cache_Get_Instrument(struct Cache *pcache)
+    {
 
-   /* Retourne une copie de la structure d’instrumentation du cache pointé par pcache .
-            Attention : tous les compteurs de la structure courante sont remis à 0 par cette
-    fonction.*/
+        /* Retourne une copie de la structure d’instrumentation du cache pointé par pcache .
+                 Attention : tous les compteurs de la structure courante sont remis à 0 par cette
+         fonction.*/
 
-    struct Cache_Instrument * inst =  &pcache->instrument;
-    pcache->instrument.n_deref = 0;
-    pcache->instrument.n_hits = 0;
-    pcache->instrument.n_reads = 0;
-    pcache->instrument.n_syncs = 0;
-    pcache->instrument.n_writes = 0;
-    return inst;
-}
+        struct Cache_Instrument * inst =  &pcache->instrument;
+        pcache->instrument.n_deref = 0;
+        pcache->instrument.n_hits = 0;
+        pcache->instrument.n_reads = 0;
+        pcache->instrument.n_syncs = 0;
+        pcache->instrument.n_writes = 0;
+        return inst;
+    }

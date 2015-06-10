@@ -10,6 +10,7 @@ struct Cache_Block_Header *Get_Free_Block(struct Cache *pcache){
         if( pcache->headers[i].flags & VALID ){
             return pcache->headers+i;
         }
-        return NULL;
     }
+
+    return NULL;
 }

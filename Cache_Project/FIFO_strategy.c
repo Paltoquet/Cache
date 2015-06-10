@@ -27,11 +27,6 @@
 //! Creation et initialisation de la stratégie (invoqué par la création de cache).
 void *Strategy_Create(struct Cache *pcache)
 {
-    /*struct Cache_List* cl = Cache_List_Create();
-        for(int i = 0; i < pcache->nblocks; i++) {
-            if(pcache->headers[i]->flags == VALID) Cache_List_Append(cl, pcache->headers[i]);
-        }
-        return cl;*/
     return Cache_List_Create();
 }
 
