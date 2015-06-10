@@ -82,11 +82,25 @@ Cache_Error Cache_Invalidate(struct Cache *pcache){
     for( int i = 0; i < pcache->nblocks; i++){
         pcache->headers[i].flags &= ~VALID;
     }
+
+    Strategy_Invalidate(pcache);
 }
 
 //! Lecture  (à travers le cache).
 Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord){
 
+    struct Cache_Block_Header*  h = pcache->headers;
+    for(int i = 0 ; h->ibfile != irfile && i < pcache->nblocks; h++, i++ );
+
+    if( h->ibfile != irfile ){
+        h = Strategy_Replace_Block(pcache);
+    }
+
+    strcpy(h->data, precord);
+
+    Strategy_Read(pcache, h);
+
+    return CACHE_OK;
 }
 
 //! Écriture (à travers le cache).
