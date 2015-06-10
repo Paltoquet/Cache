@@ -2,6 +2,7 @@
 #include "low_cache.h"
 
 
+
 /*!
  * \file strategy.h
  *
@@ -54,13 +55,15 @@ struct Cache_Block_Header *Strategy_Replace_Block(struct Cache *pcache)
 {
     struct Cache_List * blocks = (struct Cache_List *) pcache->pstrategy;
     struct Cache_Block_Header * block = Get_Free_Block(pcache);
-    if(!block)
+
+    if(block!=NULL)
     {
-        Cache_List_Append((struct Cache_List *) blocks,block);
+        Cache_List_Append( blocks, block);
         return block;
     }
+    block = Cache_List_Remove_First(blocks);
     //on le déplace en bout de ligne
-    Cache_List_Move_To_End((struct Cache_List *)blocks, (struct Cache_Block_Header *)block);
+    Cache_List_Append(blocks, block);
     //return le plus vieux bloc (premier element de la liste pstrategy)
     return block;
 }
