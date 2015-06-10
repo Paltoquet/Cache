@@ -1,4 +1,9 @@
-static int compteur;
+typedef struct S_Data_NRU {
+    int compteur;
+    int nderef;
+}Data_NRU;
+
+static Data_NRU data_nru = {0,0};
 
 void init_all_flag(struct Cache *pcache);
 void init_flag(struct Cache *pcache, int flag);
@@ -24,23 +29,23 @@ void init_flag(struct Cache *pcache, int flag){
 
 //! Creation et initialisation de la stratégie (invoqué par la création de cache).
 void *Strategy_Create(struct Cache *pcache){
-    compteur = 0;
-    pcache->pstrategy = NULL;
+    data_nru.compteur = 0;
+    data_nru.nderef = pcache->nderef;
+    pcache->pstrategy = &data_nru;
     init_all_flag(pcache);
     return NULL;
 }
 
 //! Fermeture de la stratégie.
 void Strategy_Close(struct Cache *pcache){
-    compteur = 0;
+    data_nru.compteur = 0;
+    data_nru.nderef = 0;
     pcache->pstrategy = NULL;
     init_all_flag(pcache);
 }
 
 //! Fonction "réflexe" lors de l'invalidation du cache.
 void Strategy_Invalidate(struct Cache *pcache){
-    compteur = 0;
-    pcache->pstrategy = NULL;
     init_flag(pcache, REFER);
 }
 
@@ -66,27 +71,27 @@ struct Cache_Block_Header *Strategy_Replace_Block(struct Cache *pcache){
 
 //! Fonction "réflexe" lors de la lecture.
 void Strategy_Read(struct Cache *pcache, struct Cache_Block_Header *pb){
-    compteur++;
+    data_nru.compteur++;
     pb->flags |= REFER;
 
     //Remise à zero si nderef est atteint
-    if( compteur == pcache->nderef ){
+    if( data_nru.compteur == data_nru.nderef ){
         init_flag(pcache, REFER);
-        compteur = 0;
+        data_nru.compteur = 0;
     }
 }
 
 //! Fonction "réflexe" lors de l'écriture.
 void Strategy_Write(struct Cache *pcache, struct Cache_Block_Header *pb){
-    compteur++;
+    data_nru.compteur++;
 
     pb->flags |= REFER;
     pb->flags |= MODIF;
 
     //Remise à zero si nderef est atteint
-    if( compteur == pcache->nderef ){
+    if( data_nru.compteur == data_nru.nderef ){
         init_flag(pcache, REFER);
-        compteur = 0;
+        data_nru.compteur = 0;
     }
 }
 
