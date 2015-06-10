@@ -53,12 +53,27 @@ Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord){
 }
 
 //! Écriture (à travers le cache).
-Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord){
+Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord)
+{
+    // recherche du bloc irfile dans le cache
 
+    // ecrit le contenu du buffer precords dans le block
 }
 
 
 //! Résultat de l'instrumentation.
-struct Cache_Instrument *Cache_Get_Instrument(struct Cache *pcache){
+struct Cache_Instrument *Cache_Get_Instrument(struct Cache *pcache)
+{
 
+   /* Retourne une copie de la structure d’instrumentation du cache pointé par pcache .
+            Attention : tous les compteurs de la structure courante sont remis à 0 par cette
+    fonction.*/
+
+    struct Cache_Instrument * inst = pcache->instrument;
+    pcache->instrument.n_deref = 0;
+    pcache->instrument.n_hits = 0;
+    pcache->instrument.n_reads = 0;
+    pcache->instrument.n_syncs = 0;
+    pcache->instrument.n_writes = 0;
+    return inst;
 }
