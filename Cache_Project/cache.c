@@ -102,40 +102,73 @@ Cache_Error Cache_Invalidate(struct Cache *pcache){
 
 //! Lecture  (à travers le cache).
 Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord){
-
+    printf("1 \n");
+    int t=0;
     pcache->instrument.n_reads ++;
     pcache->instrument.n_hits ++;
-
+    int k;
     struct Cache_Block_Header*  h = pcache->headers;
-    for(int i = 0 ; h->ibfile != irfile && i < pcache->nblocks; h++, i++ );
-
-    if( h->ibfile != irfile || h->data == NULL){
-        pcache->instrument.n_hits --;
-        h = Strategy_Replace_Block(pcache);
-
-        if( fseek(pcache->fp, h->ibfile,SEEK_SET ) == EOF ){
-            return CACHE_KO;
+    for(int i = 0 ; !t ; h++, i++ ){
+        for(k=0;k<pcache->nrecords;k++){
+            if(h->ibfile+k==irfile){
+                t=1;break;
+            }
+        }
+        if(i==(pcache->nblocks-1)){
+            t=1;
+        }
+    }
+    printf("fin 1,5 \n");
+    //ON l a trouvé
+    if( h->ibfile == irfile-k && h->data != NULL){
+        printf("fin 1.7 \n");
+        h->flags |= VALID;
+        printf("%p %p %p \n", precord, (h->data+k), pcache->recordsz);
+        memcpy(precord, (h->data)+pcache->recordsz*k,pcache->recordsz);
+        Strategy_Read(pcache, h);
+        compteur++;
+        printf("fin 1.8 \n");
+        if( compteur == NSYNC ){
+            Cache_Sync(pcache);
+            compteur = 0;
         }
 
-        if( fgets(h->data, pcache->recordsz ,pcache->fp ) == EOF){
-            return CACHE_KO;
-        }
-
-        h->ibfile = irfile;
-        h->flags &= ~MODIF;
+        return CACHE_OK;
     }
 
+    printf(" 2 \n");
+    //Cherche bloque libre
+    h = Strategy_Replace_Block(pcache);
+    if (fseek(pcache->fp, irfile, SEEK_SET) == EOF) {
+        return CACHE_KO;
+    }
+
+
+    if( h->data != NULL ) free(h->data);
+    h->data = (char*)malloc(pcache->nrecords*pcache->recordsz);
+    char buffer[pcache->recordsz];
+    for( int i = 0; i < pcache->nrecords; i++){
+        if (fgets(buffer, pcache->recordsz, pcache->fp) == NULL) {
+            return CACHE_KO;
+        }
+        strcat(h->data, buffer);
+    }
+
+    h->ibfile = irfile;
+    h->flags &= ~MODIF;
+
     h->flags &= VALID;
-    strcpy(precord, h->data);
+    memcpy(precord, h->data,pcache->recordsz);
     Strategy_Read(pcache, h);
 
     //NSYNC
     compteur++;
-    if( compteur == NSYNC ){
+    if (compteur == NSYNC) {
         Cache_Sync(pcache);
         compteur = 0;
     }
 
+    printf("fin 1 \n");
     return CACHE_OK;
 }
 

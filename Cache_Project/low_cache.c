@@ -7,11 +7,11 @@ struct Cache_Block_Header *Get_Free_Block(struct Cache *pcache){
 
     for(int i = 0; i < pcache->nblocks; i++){
 
-        if( pcache->headers[i].flags & VALID ){
+        if( pcache->headers[i].flags & VALID == 0){
             pcache->pfree =  pcache->headers+i;
             return pcache->pfree;
         }
     }
 
-    return pcache->pfree;
+    return NULL;
 }
