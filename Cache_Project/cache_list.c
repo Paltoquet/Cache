@@ -108,6 +108,7 @@ struct Cache_Block_Header *Cache_List_Remove_Last(struct Cache_List *list){
 bool Cache_List_Is_Empty(struct Cache_List *list){
     if(list->pheader=NULL){
         return true;
+
     }
     else return false;
 }
