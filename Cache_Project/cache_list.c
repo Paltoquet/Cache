@@ -71,38 +71,25 @@ void Cache_List_Move_To_Begin(struct Cache_List *list, struct Cache_Block_Header
     for( cl = list; cl->pheader != pbh && cl != list->prev; cl = cl->next  );
 
     if( cl->pheader != pbh ){
-        Cache_List_Prepend(list, pbh);
+        Cache_List_Append(list, pbh);
         return;
     }
-    //on supprime
+
     cl->prev->next = cl->next;
     cl->next->prev = cl->prev;
 
-    //On ajoute en 2 eme position puis on modifie le premier
-    list->next->pred=cl;
-    cl->next=list->next;
-    cl->prev=list;
-    cl->pheader=list->pheader;
-    list->pheader=pbh;
-    list->next=cl;
+    //TODO
+
 }
 
 struct Cache_Block_Header *Cache_List_Remove_First(struct Cache_List *list){
-    struct Cache_Block_Header* res=list->pheader;
+    free(list->pheader);
 
-    struct Cache_List* tmp=list;
-    struct Cache_List* next;
-    list=list->next;
-    list->prev=tmp;
-    while(next!=list){
-        next=tmp->next;
-        tmp->pheader=next->pheader;
+    for( struct Cache_List *cl = list; cl->next = list; cl = cl->next  ){
+        cl->pheader = cl->next->pheader;
     }
-    list->pred=tmp->pred;
-    tmp->pred->next=list;
-    free(tmp);
 
-    return res;
+    return Cache_List_Remove_Last(list);
 }
 
 struct Cache_Block_Header *Cache_List_Remove_Last(struct Cache_List *list){
