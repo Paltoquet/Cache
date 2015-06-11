@@ -23,13 +23,11 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
     cache->nderef = nderef;
 
     //init instrument
-    struct Cache_Instrument *cacheInstrument = (struct Cache_Instrument*) malloc(sizeof(struct Cache_Instrument));
-    cacheInstrument->n_reads=0;
-    cacheInstrument->n_writes=0;
-    cacheInstrument->n_hits=0;
-    cacheInstrument->n_syncs=0;
-    cacheInstrument->n_deref=0;
-    cache->instrument = *cacheInstrument;
+    cache->instrument.n_reads=0;
+    cache->instrument.n_writes=0;
+    cache->instrument.n_hits=0;
+    cache->instrument.n_syncs=0;
+    cache->instrument.n_deref=0;
 
     //init Headers
     struct Cache_Block_Header* headers = (struct Cache_Block_Header*) malloc(sizeof(struct Cache_Block_Header)*nblocks);
@@ -45,20 +43,15 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
 
 //! Fermeture (destruction) du cache.
 Cache_Error Cache_Close(struct Cache *pcache){
-    free(&pcache->instrument);
-
-    for( int i = 0; i < pcache->nblocks; i++){
-        free(pcache->headers+i);
-    }
+    free(pcache->file);
+    free(pcache->headers);
 
     if( fclose(pcache->fp) == EOF ){
         return CACHE_KO;
     }
 
     Strategy_Close(pcache);
-
     free( pcache );
-
     return CACHE_OK;
 }
 
