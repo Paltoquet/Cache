@@ -6,11 +6,13 @@
 #include "strategy.h"
 
 
-
+static int compteur;
 
 //! Création du cache.
 struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
                            size_t recordsz, unsigned nderef){
+
+    compteur = 0;
 
     struct Cache* cache = (struct Cache*) malloc(sizeof(struct Cache));
     cache->file = (char*)malloc( sizeof(char) * (strlen(fic)+1) );
@@ -27,10 +29,14 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
     cache->instrument.n_writes=0;
     cache->instrument.n_hits=0;
     cache->instrument.n_syncs=0;
-    cache->instrument.n_deref=0;
+    cache->instrument.n_deref= 0;
 
     //init Headers
     struct Cache_Block_Header* headers = (struct Cache_Block_Header*) malloc(sizeof(struct Cache_Block_Header)*nblocks);
+
+    /*for (int i = 0; i < nblocks; i++){
+
+    }*/
     cache->pfree = headers;
     cache->headers = headers;
 
@@ -43,6 +49,11 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
 
 //! Fermeture (destruction) du cache.
 Cache_Error Cache_Close(struct Cache *pcache){
+
+    if( Cache_Sync(pcache) == CACHE_KO ){
+        return CACHE_KO;
+    }
+
     free(pcache->file);
     free(pcache->headers);
 
@@ -98,14 +109,32 @@ Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord){
     struct Cache_Block_Header*  h = pcache->headers;
     for(int i = 0 ; h->ibfile != irfile && i < pcache->nblocks; h++, i++ );
 
-    if( h->ibfile != irfile ){
+    if( h->ibfile != irfile || h->data == NULL){
         pcache->instrument.n_hits --;
         h = Strategy_Replace_Block(pcache);
+
+        if( fseek(pcache->fp, h->ibfile,SEEK_SET ) == EOF ){
+            return CACHE_KO;
+        }
+
+        if( fgets(h->data, pcache->recordsz ,pcache->fp ) == EOF){
+            return CACHE_KO;
+        }
+
+        h->ibfile = irfile;
+        h->flags &= ~MODIF;
     }
 
+    h->flags &= VALID;
     strcpy(precord, h->data);
-
     Strategy_Read(pcache, h);
+
+    //NSYNC
+    compteur++;
+    if( compteur == NSYNC ){
+        Cache_Sync(pcache);
+        compteur = 0;
+    }
 
     return CACHE_OK;
 }
@@ -114,6 +143,7 @@ Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord){
 Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord)
 {
     pcache->instrument.n_writes ++;
+    pcache->instrument.n_hits ++;
 
     // recherche du bloc irfile dans le cache
     struct Cache_Block_Header *tmp = pcache->headers;
@@ -130,15 +160,10 @@ Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord)
             next->data = (char*)malloc(sizeof(char) * (strlen(precord)+1));
 
             strcpy(next->data,precord);
-            //Modification des flags
-            if(next->flags & 0) // le bloc est invalide
-                next->flags = VALID ;
 
-            if(next->flags & VALID) // le bloc possede des donnees et on ecrit dessus
-                next->flags = MODIF ;
+            next->flags &= MODIF ;
+            next->flags &= VALID ;
             is_in_cache = 1 ;
-
-
         }
 
         next++;
@@ -146,18 +171,26 @@ Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord)
 
     if(!is_in_cache)
     {
+        pcache->instrument.n_hits --;
         next = Strategy_Replace_Block(pcache);
-        strcpy(next->data,precord);
-        //Modification des flags
-        if(next->flags & 0) // le bloc est invalide
-            next->flags = VALID ;
 
-        if(next->flags & VALID) // le bloc possede des donnees et on ecrit dessus
-            next->flags = MODIF ;
+        strcpy(next->data,precord);
+
+        next->flags &= VALID;
+        next->flags &= MODIF;
+        next->ibfile = irfile;
     }
 
     //appel a write de la strategie utilise
     Strategy_Write(pcache,next);
+
+    //NSYNC
+    compteur++;
+    if( compteur == NSYNC ){
+        Cache_Sync(pcache);
+        compteur = 0;
+    }
+
     return CACHE_OK;
 }
 
@@ -166,19 +199,25 @@ Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord)
 struct Cache_Instrument *Cache_Get_Instrument(struct Cache *pcache)
 {
 
+    Cache_Sync(pcache);
+    compteur = 0;
+
     /* Retourne une copie de la structure d’instrumentation du cache pointé par pcache .
              Attention : tous les compteurs de la structure courante sont remis à 0 par cette
      fonction.*/
+    struct Cache_Instrument * inst =  (struct Cache_Instrument*) malloc(sizeof(struct Cache_Instrument));
+    inst->n_hits = pcache->instrument.n_hits;
+    inst->n_reads = pcache->instrument.n_reads;
+    inst->n_syncs = pcache->instrument.n_syncs;
+    inst->n_writes = pcache->instrument.n_writes;
+    inst->n_deref = pcache->instrument.n_deref;
 
-    //TODO
-    //probleme pointeur Cache_Instrument
-    //compteur instrument deref
 
-    struct Cache_Instrument * inst =  &pcache->instrument;
-    pcache->instrument.n_deref = 0;
     pcache->instrument.n_hits = 0;
     pcache->instrument.n_reads = 0;
     pcache->instrument.n_syncs = 0;
     pcache->instrument.n_writes = 0;
+    pcache->instrument.n_deref = 0;
+
     return inst;
 }
