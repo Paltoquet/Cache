@@ -90,7 +90,7 @@ void Cache_List_Move_To_Begin(struct Cache_List *list, struct Cache_Block_Header
 struct Cache_Block_Header *Cache_List_Remove_First(struct Cache_List *list){
     free(list->pheader);
 
-    for( struct Cache_List *cl = list; cl->next = list; cl = cl->next  ){
+    for( struct Cache_List *cl = list; cl->next != list; cl = cl->next  ){
         cl->pheader = cl->next->pheader;
     }
 
@@ -108,8 +108,27 @@ struct Cache_Block_Header *Cache_List_Remove_Last(struct Cache_List *list){
 bool Cache_List_Is_Empty(struct Cache_List *list){
     if(list->pheader=NULL){
         return true;
-
     }
     else return false;
+}
+
+struct Cache_Block_Header *Cache_List_Remove(struct Cache_List *list,
+                                             struct Cache_Block_Header *pbh){
+    if( Cache_List_Is_Empty(list) ){
+        return NULL;
+    }
+
+    struct Cache_List *cl = NULL;
+    for( cl = list; cl->pheader != pbh && cl != list->prev; cl = cl->next  );
+
+    if(  cl->pheader != pbh ){
+        return NULL;
+    }
+
+    cl->prev->next = cl->next;
+    cl->next->prev = cl->prev;
+
+    free(cl);
+    return pbh;
 }
 
