@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "cache.h"
 #include "low_cache.h"
 #include "strategy.h"
-#include <string.h>
+
 
 
 
@@ -12,7 +13,7 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
                            size_t recordsz, unsigned nderef){
 
     struct Cache* cache = (struct Cache*) malloc(sizeof(struct Cache));
-    cache->file = fic;
+    strcpy(cache->file, fic);
     cache->fp = fopen(fic, "r+" );
     cache->nblocks = nblocks;
     cache->nrecords = nrecords;
@@ -21,13 +22,13 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
     cache->nderef = nderef;
 
     //init instrument
-    struct Cache_Instrument* cacheInstrument = (Cache_Instrument*) malloc(sizeof(struct Cache_Instrument));
+    struct Cache_Instrument *cacheInstrument = (struct Cache_Instrument*) malloc(sizeof(struct Cache_Instrument));
     cacheInstrument->n_reads=0;
     cacheInstrument->n_writes=0;
     cacheInstrument->n_hits=0;
     cacheInstrument->n_syncs=0;
     cacheInstrument->n_deref=0;
-    cache->instrument = cacheInstrument;
+    cache->instrument = *cacheInstrument;
 
     //init Headers
     struct Cache_Block_Header* headers = (struct Cache_Block_Header*) malloc(sizeof(struct Cache_Block_Header)*nblocks);
@@ -37,11 +38,12 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
     //strategie
     cache->pstrategy = Strategy_Create(cache);
 
+    return cache;
 }
 
 //! Fermeture (destruction) du cache.
 Cache_Error Cache_Close(struct Cache *pcache){
-    free(pcache->instrument);
+    free(&pcache->instrument);
 
     for( int i = 0; i < pcache->nblocks; i++){
         free(pcache->headers+i);
@@ -74,7 +76,7 @@ Cache_Error Cache_Sync(struct Cache *pcache){
                 return CACHE_KO;
             }
 
-            header->flags =& ~MODIF;
+            header->flags &= ~MODIF;
         }
     }
     return CACHE_OK;
@@ -101,7 +103,7 @@ Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord){
             h = Strategy_Replace_Block(pcache);
         }
 
-        strcpy(h->data, precord);
+        strcpy(precord, h->data);
 
         Strategy_Read(pcache, h);
 
