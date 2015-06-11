@@ -79,7 +79,7 @@ void Cache_List_Move_To_Begin(struct Cache_List *list, struct Cache_Block_Header
     cl->next->prev = cl->prev;
 
     //On ajoute en 2 eme position puis on modifie le premier
-    list->next->pred=cl;
+    list->next->prev=cl;
     cl->next=list->next;
     cl->prev=list;
     cl->pheader=list->pheader;
@@ -100,13 +100,13 @@ struct Cache_Block_Header *Cache_List_Remove_First(struct Cache_List *list){
 struct Cache_Block_Header *Cache_List_Remove_Last(struct Cache_List *list){
     struct Cache_Block_Header* res;
     res=(list->prev)->pheader;
-    list->pred=list->pred->pred;
-    list->pred->pred->next=list;
+    list->prev=list->prev->prev;
+    list->prev->prev->next=list;
     return res;
 }
 
 bool Cache_List_Is_Empty(struct Cache_List *list){
-    if(list->pheader=NULL){
+    if(list->pheader == NULL){
         return true;
     }
     else return false;
