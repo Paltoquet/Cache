@@ -162,11 +162,12 @@ int main(int argc, char *argv[])
     /* Initialisation du cache */
     if ((The_Cache = Cache_Create(File, N_Blocks_in_Cache, N_Records_per_Block,
                                   Record_Size, N_Deref)) == NULL)
-	Error("Cache_Init");
+	    Error("Cache_Init");
+
     Print_Parameters();
 
     /* Exécution des tests */
-    for (i = 0; i < NTESTS; ++i)
+    for (i = 0; i < 1/*NTESTS*/; ++i)
     {
         if (Do_Test[i]) Tests[i]();
     }
@@ -200,9 +201,13 @@ static void Test_1()
     int ind;	/* indice-fichier de l'enregistrement à écrire */ 
     struct Any temp = {0, 0.0};
 
+    printf("Avant invalidate\n");
     if (!Cache_Invalidate(The_Cache)) Error("Test_1 : Cache_Invalidate");
+    printf("Apres invalidate\n");
 
+    printf("Avant Cache_Write\n");
     if (!Cache_Write(The_Cache, 0, &temp)) Error("Test_1 : Cache_Write(0)");
+    printf("Apres Cache_Write\n");
     for (ind = 1; ind < N_Records_in_File; ind++)
     {
         temp.i = ind;
@@ -211,7 +216,9 @@ static void Test_1()
 	if (!Cache_Read(The_Cache, ind - 1, &temp)) Error("Test_1 : Cache_Read");
     }
 
+    printf("Avant Print_Instrument\n");
     Print_Instrument(The_Cache, "Test_1 : boucle de lecture séquentielle");
+    printf("Apres Print_Instrument\n");
 }
 
 /* Test 2 : boucle d'écriture aléatoire
