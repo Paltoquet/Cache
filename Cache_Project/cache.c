@@ -13,6 +13,7 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
                            size_t recordsz, unsigned nderef){
 
     struct Cache* cache = (struct Cache*) malloc(sizeof(struct Cache));
+    cache->file = (char*)malloc( sizeof(char) * (strlen(fic)+1) );
     strcpy(cache->file, fic);
     cache->fp = fopen(fic, "r+" );
     cache->nblocks = nblocks;
@@ -37,6 +38,7 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
 
     //strategie
     cache->pstrategy = Strategy_Create(cache);
+
 
     return cache;
 }

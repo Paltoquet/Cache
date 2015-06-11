@@ -162,11 +162,11 @@ int main(int argc, char *argv[])
     /* Initialisation du cache */
     if ((The_Cache = Cache_Create(File, N_Blocks_in_Cache, N_Records_per_Block,
                                   Record_Size, N_Deref)) == NULL)
-	Error("Cache_Init");
+	    Error("Cache_Init");
     Print_Parameters();
 
     /* Exécution des tests */
-    for (i = 0; i < NTESTS; ++i)
+    /*for (i = 0; i < NTESTS; ++i)
     {
         if (Do_Test[i]) Tests[i]();
     }
