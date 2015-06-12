@@ -100,65 +100,57 @@ Cache_Error Cache_Invalidate(struct Cache *pcache){
     return CACHE_OK;
 }
 
-//! Lecture  (à travers le cache).
+//! Lecture (à travers le cache).
 Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord){
-    printf("1 \n");
-    int t=0;
     pcache->instrument.n_reads ++;
     pcache->instrument.n_hits ++;
-    int k;
-    struct Cache_Block_Header*  h = pcache->headers;
-    for(int i = 0 ; !t ; h++, i++ ){
-        for(k=0;k<pcache->nrecords;k++){
-            if(h->ibfile+k==irfile){
-                t=1;break;
+
+    struct Cache_Block_Header *h = NULL;
+    int i, j;
+    for( i = 0; i < pcache->nblocks; i++){
+        h = (pcache->headers)+i;
+        for (j= 0;j < pcache->nrecords; j++){
+
+            if( irfile == (h->ibfile)+j ){
+                h+=j;
+                break;
             }
         }
-        if(i==(pcache->nblocks-1)){
-            t=1;
-        }
+
+        if( h->ibfile == irfile )break;
     }
-    printf("fin 1,5 \n");
+
+    //printf(" %d %d  i:%d j:%d \n", h->ibfile, irfile, i, j);
+    //getchar();
+
     //ON l a trouvé
-    if( h->ibfile == irfile-k && h->data != NULL){
-        printf("fin 1.7 \n");
-        h->flags |= VALID;
-        printf("%p %p %p \n", precord, (h->data+k), pcache->recordsz);
-        memcpy(precord, (h->data)+pcache->recordsz*k,pcache->recordsz);
-        Strategy_Read(pcache, h);
-        compteur++;
-        printf("fin 1.8 \n");
-        if( compteur == NSYNC ){
-            Cache_Sync(pcache);
-            compteur = 0;
+    if( h->ibfile == irfile && h->data != NULL){
+        memcpy(precord, h->data ,pcache->recordsz);
+    }
+    else {//Cherche bloque libre
+        pcache->instrument.n_hits --;
+        char buffer[pcache->recordsz];
+
+        h = Strategy_Replace_Block(pcache);
+        if (fseek(pcache->fp, irfile, SEEK_SET) == EOF)return CACHE_KO;
+
+        //on remplie les petit block
+        for (int i = 0; i < pcache->nrecords; i++) {
+            if (fgets(buffer, pcache->recordsz, pcache->fp) == NULL) return CACHE_KO;
+
+            char a [(int)(pcache->nrecords * pcache->recordsz) / sizeof(char)];
+            h[i].data = a;
+
+            if( i == 0 ) strcat(precord, buffer);
+            strcat(h[i].data, buffer);
+            h[i].ibfile = irfile++;
+            h[i].flags &= ~MODIF;
         }
 
-        return CACHE_OK;
+
     }
 
-    printf(" 2 \n");
-    //Cherche bloque libre
-    h = Strategy_Replace_Block(pcache);
-    if (fseek(pcache->fp, irfile, SEEK_SET) == EOF) {
-        return CACHE_KO;
-    }
-
-
-    if( h->data != NULL ) free(h->data);
-    h->data = (char*)malloc(pcache->nrecords*pcache->recordsz);
-    char buffer[pcache->recordsz];
-    for( int i = 0; i < pcache->nrecords; i++){
-        if (fgets(buffer, pcache->recordsz, pcache->fp) == NULL) {
-            return CACHE_KO;
-        }
-        strcat(h->data, buffer);
-    }
-
-    h->ibfile = irfile;
-    h->flags &= ~MODIF;
-
-    h->flags &= VALID;
-    memcpy(precord, h->data,pcache->recordsz);
+    h->flags |= VALID;
     Strategy_Read(pcache, h);
 
     //NSYNC
@@ -168,7 +160,6 @@ Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord){
         compteur = 0;
     }
 
-    printf("fin 1 \n");
     return CACHE_OK;
 }
 
@@ -178,48 +169,40 @@ Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord)
     pcache->instrument.n_writes ++;
     pcache->instrument.n_hits ++;
 
-    // recherche du bloc irfile dans le cache
-    struct Cache_Block_Header *tmp = pcache->headers;
-    struct Cache_Block_Header *next = tmp;
-    int block_courant = 0;
-    int is_in_cache = 0;
+    struct Cache_Block_Header *h = NULL;
+    int i, j;
+    for( i = 0; i < pcache->nblocks; i++){
+        h = (pcache->headers)+i;
+        for (j= 0;j < pcache->nrecords; j++){
 
-    while ( !is_in_cache && block_courant++ < pcache->nblocks ) {
-
-        if(next->ibfile == irfile)
-        {
-            // ecrit le contenu du buffer precords dans le block
-            if( next->data != NULL) free(next->data);
-            next->data = (char*)malloc(sizeof(char) * (strlen(precord)+1));
-
-            strcpy(next->data,precord);
-
-            next->flags &= MODIF ;
-            next->flags &= VALID ;
-            is_in_cache = 1 ;
+            if( irfile == (h->ibfile)+j ){
+                h+=j;
+                break;
+            }
         }
 
-        next++;
+        if( h->ibfile == irfile )break;
+
     }
 
-    if(!is_in_cache)
-    {
+    //ON l'a pas trouvé
+    if( !(h->ibfile == irfile && h->data != NULL)){
         pcache->instrument.n_hits --;
-        next = Strategy_Replace_Block(pcache);
+        h = Strategy_Replace_Block(pcache);
+        h->ibfile = irfile;
 
-        strcpy(next->data,precord);
-
-        next->flags &= VALID;
-        next->flags &= MODIF;
-        next->ibfile = irfile;
+        char a [(int)(pcache->nrecords * pcache->recordsz) / sizeof(char)];
+        h->data = a;
     }
+    memcpy(h->data, precord ,pcache->recordsz);
 
-    //appel a write de la strategie utilise
-    Strategy_Write(pcache,next);
+    h->flags |= VALID;
+    h->flags |= MODIF;
+    Strategy_Write(pcache, h);
 
     //NSYNC
     compteur++;
-    if( compteur == NSYNC ){
+    if (compteur == NSYNC) {
         Cache_Sync(pcache);
         compteur = 0;
     }
