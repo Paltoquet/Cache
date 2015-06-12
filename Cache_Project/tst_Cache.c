@@ -20,7 +20,7 @@
  */
 
 #define DEF_FILE "foo"		/* Nom du fichier */
-#define N_RECORDS_PER_BLOCK 10	/* Nombre d'enregistrements par bloc */	
+#define N_RECORDS_PER_BLOCK 10	/* Nombre d'enregistrements par bloc */
 #define N_RECORDS_IN_FILE 30000	/* Nombre total d'enregistrements dans le fichier */
 #define RATIO_FILE_CACHE 100	/* Ratio taille fichier / taille cache */
 #define N_LOOPS 3		/* Nombre total d'accès (lecture ou écriture) */
@@ -42,18 +42,18 @@
 /* Fichier par défaut */
 char *File = DEF_FILE;
 
-/* Nombre d'enregistrements par bloc */			
+/* Nombre d'enregistrements par bloc */
 unsigned int N_Records_per_Block = N_RECORDS_PER_BLOCK;
 
 /* Nombre total d'enregistrements dans le fichier */
 int N_Records_in_File = N_RECORDS_IN_FILE;
 
-/* Ratio taille fichier / taille cache */		
+/* Ratio taille fichier / taille cache */
 int Ratio_File_Cache = RATIO_FILE_CACHE;
 
 /* Nb de blocs dans le cache
  * Le cache comportera N_Records_in_File / Ratio_File_Cache enregistrements
- */	   
+ */
 unsigned int N_Blocks_in_Cache;
 
 /* Configuration des tests
@@ -62,12 +62,12 @@ unsigned int N_Blocks_in_Cache;
 
 /* Nombre total d'accès (lecture ou écriture) pour les tests 2, 3 et 4
  * En fait, le nombre d'accès sera N_Loops * N_Records_in_File
- */		
+ */
 int N_Loops = N_LOOPS;
 
 /* Rapport nombre de lectures / nombre d'écritures
  * Pour les tests 3 et 4
-*/	
+*/
 int Ratio_Read_Write = RATIO_READ_WRITE;
 
 /* Nombre maximum d'accès séquentiels
@@ -132,11 +132,11 @@ static void Test_4();
 static void Test_5();
 
 static void (*Tests[])() = {
-    Test_1,
-    Test_2,
-    Test_3,
-    Test_4,
-    Test_5,
+        Test_1,
+        Test_2,
+        Test_3,
+        Test_4,
+        Test_5,
 };
 #define NTESTS ((int)(sizeof(Tests)/sizeof(Tests[0])))
 
@@ -162,12 +162,11 @@ int main(int argc, char *argv[])
     /* Initialisation du cache */
     if ((The_Cache = Cache_Create(File, N_Blocks_in_Cache, N_Records_per_Block,
                                   Record_Size, N_Deref)) == NULL)
-	    Error("Cache_Init");
-
+        Error("Cache_Init");
     Print_Parameters();
 
     /* Exécution des tests */
-    for (i = 0; i < 1/*NTESTS*/; ++i)
+    for (i = 0; i < NTESTS; ++i)
     {
         if (Do_Test[i]) Tests[i]();
     }
@@ -198,27 +197,21 @@ int main(int argc, char *argv[])
 */
 static void Test_1()
 {
-    int ind;	/* indice-fichier de l'enregistrement à écrire */ 
+    int ind;	/* indice-fichier de l'enregistrement à écrire */
     struct Any temp = {0, 0.0};
 
-    printf("Avant invalidate\n");
     if (!Cache_Invalidate(The_Cache)) Error("Test_1 : Cache_Invalidate");
-    printf("Apres invalidate\n");
 
-    printf("Avant Cache_Write\n");
     if (!Cache_Write(The_Cache, 0, &temp)) Error("Test_1 : Cache_Write(0)");
-    printf("Apres Cache_Write\n");
     for (ind = 1; ind < N_Records_in_File; ind++)
     {
         temp.i = ind;
         temp.x = (double)ind;
-	if (!Cache_Write(The_Cache, ind, &temp)) Error("Test_1 : Cache_Write");
-	if (!Cache_Read(The_Cache, ind - 1, &temp)) Error("Test_1 : Cache_Read");
+        if (!Cache_Write(The_Cache, ind, &temp)) Error("Test_1 : Cache_Write");
+        if (!Cache_Read(The_Cache, ind - 1, &temp)) Error("Test_1 : Cache_Read");
     }
 
-    printf("Avant Print_Instrument\n");
     Print_Instrument(The_Cache, "Test_1 : boucle de lecture séquentielle");
-    printf("Apres Print_Instrument\n");
 }
 
 /* Test 2 : boucle d'écriture aléatoire
@@ -237,12 +230,12 @@ void Test_2()
     /* Accès (purement) aléatoire aux éléments en écriture */
     for (ind = 0; ind < N_Loops; ind++)
     {
-	int ind = RANDOM(0, N_Records_in_File);
+        int ind = RANDOM(0, N_Records_in_File);
         struct Any temp;
 
         temp.i = ind;
         temp.x = (double)ind;
-	if (!Cache_Write(The_Cache, ind, &temp)) Error("Test_2 : Cache_Write");
+        if (!Cache_Write(The_Cache, ind, &temp)) Error("Test_2 : Cache_Write");
     }
 
     Print_Instrument(The_Cache, "Test_2 : boucle écriture aléatoire");
@@ -266,7 +259,7 @@ void Test_3()
     /* Boucle de lecture/écriture aléatoire */
     for (i = 0; i < N_Loops; )
     {
-	int ind = RANDOM(0, N_Records_in_File);	/* indice-fichier de l'enregistrement */
+        int ind = RANDOM(0, N_Records_in_File);	/* indice-fichier de l'enregistrement */
         int nr = RANDOM(1, N_Seq_Access);	/* nombre d'enregistrements consécutifs */
         int j;
 
@@ -280,18 +273,18 @@ void Test_3()
             int rd = ((i + j) % Ratio_Read_Write != 0);
 
             temp.i = ind;
-            temp.x = (double)ind;  
+            temp.x = (double)ind;
             if (rd)
             {
-                if (!Cache_Read(The_Cache, ind + j, &temp)) 
+                if (!Cache_Read(The_Cache, ind + j, &temp))
                     Error("Test_3 : Cache_Read");
             }
             else
             {
-                if (!Cache_Write(The_Cache, ind + j, &temp)) 
+                if (!Cache_Write(The_Cache, ind + j, &temp))
                     Error("Test_3 : Cache_Write");
             }
-	}
+        }
         /* On a fait nr accès de plus */
         i += nr;
     }
@@ -323,7 +316,7 @@ void Test_4()
 
     for (i = 0; i < N_Loops; i += nlocal)
     {
-	int ind = RANDOM(0, N_Records_in_File);	/* indice-fichier de
+        int ind = RANDOM(0, N_Records_in_File);	/* indice-fichier de
                                                  * l'enregistrement de base */
         int j;
 
@@ -332,27 +325,27 @@ void Test_4()
         {
             int incr = RANDOM(0, N_Local_Window);/* on tire au sort
                                                   * l'enregistrement dans la
-                                                  * fenêtre locale */           
+                                                  * fenêtre locale */
             int ind1 = ind + incr;		/* indice de l'enregistrement à accéder */
             /* On fait une écriture tous les Ratio_Read_Write accès */
             int rd = (ind1 % Ratio_Read_Write != 0);
             struct Any temp;
 
             temp.i = ind1;
-            temp.x = (double)ind1;  
+            temp.x = (double)ind1;
 
             if (rd)
             {
-                if (!Cache_Read(The_Cache, ind1, &temp)) 
+                if (!Cache_Read(The_Cache, ind1, &temp))
                     Error("Test_4 : Cache_Read(ind)");
             }
             else
             {
-                if (!Cache_Write(The_Cache, ind1, &temp)) 
+                if (!Cache_Write(The_Cache, ind1, &temp))
                     Error("Test_4 : Cache_Write(ind)");
             }
-	}
-     }
+        }
+    }
 
     Print_Instrument(The_Cache, "Test_4 : boucle lecture/écriture aléatoire avec localité");
 }
@@ -371,7 +364,7 @@ void Test_4()
 void Test_5()
 {
     /* nombre d'accès locaux pour un working set */
-    int nlocal = N_Loops / N_Working_Sets; 
+    int nlocal = N_Loops / N_Working_Sets;
     int i;
     int k;
 
@@ -393,7 +386,7 @@ void Test_5()
             {
                 int incr = RANDOM(0, N_Local_Window);/* on tire au sort
                                                       * l'enregistrement dans la
-                                                      * fenêtre locale */           
+                                                      * fenêtre locale */
                 int ind1 = ind - incr;     	/* indice de l'enregistrement à accéder */
                 /* On fait une écriture tous les Ratio_Read_Write accès */
                 int rd = (ind1 % Ratio_Read_Write != 0);
@@ -403,16 +396,16 @@ void Test_5()
                 if (ind1 >= N_Records_in_File) ind1 = N_Records_in_File -1;
 
                 temp.i = ind1;
-                temp.x = (double)ind1;  
+                temp.x = (double)ind1;
 
                 if (rd)
                 {
-                    if (!Cache_Read(The_Cache, ind1, &temp)) 
+                    if (!Cache_Read(The_Cache, ind1, &temp))
                         Error("Test_5 : Cache_Read(ind)");
                 }
                 else
                 {
-                    if (!Cache_Write(The_Cache, ind1, &temp)) 
+                    if (!Cache_Write(The_Cache, ind1, &temp))
                         Error("Test_5 : Cache_Write(ind)");
                 }
             }
@@ -422,7 +415,7 @@ void Test_5()
     Print_Instrument(The_Cache,
                      "Test_5 : boucle lecture/écriture séquentielle avec localité");
 }
-	
+
 /* ------------------------------------------------------------------------------------
  * Fonctions locales (privées) à ce module
  * ------------------------------------------------------------------------------------
@@ -450,7 +443,7 @@ static void Print_Parameters()
     if (Short_Output)
     {
         printf("%s\nrecsz %d\nnrec %d\nnblk %d\nnrecblk %d\n", Strategy_Name(),
-               recordsz, N_Records_in_File, N_Blocks_in_Cache, N_Records_per_Block);          
+               recordsz, N_Records_in_File, N_Blocks_in_Cache, N_Records_per_Block);
         printf("file/cache %.2f\nnloop %d\nrw %d\n", 100 * (double)cachesz / filesz,
                N_Loops, Ratio_Read_Write);
         printf("nseq %d\nnws %d\nnloc %d\nnderef %d\n", N_Seq_Access, N_Working_Sets,
@@ -463,7 +456,7 @@ static void Print_Parameters()
         printf("\t%d enregistrements %d octets totaux\n", N_Records_in_File, filesz);
 
         printf("Paramètres du cache :\n");
-        printf("\t%d blocs %d enregistrements/bloc %d octets/enregistrement\n", 
+        printf("\t%d blocs %d enregistrements/bloc %d octets/enregistrement\n",
                N_Blocks_in_Cache, N_Records_per_Block, recordsz);
         printf("\t%d octets/bloc %d octets totaux\n", blocksz, cachesz);
         printf("\tRapport cache/fichier : %.2f %%\n", 100 * (double)cachesz / filesz);
@@ -473,7 +466,7 @@ static void Print_Parameters()
         printf("\tNombre d'accès : %d\n", N_Loops);
         printf("\tRapport lectures/écritures : %d\n", Ratio_Read_Write);
         printf("\tNombre maximum accès séquentiels : %d\n", N_Seq_Access);
-        printf("\tNombre de Working Sets : %d\n", N_Working_Sets);  
+        printf("\tNombre de Working Sets : %d\n", N_Working_Sets);
         printf("\tLargeur de la fenêtre de localité : %d\n", N_Local_Window);
         printf("\tFréquence de déréférençage pour NUR : %d\n", N_Deref);
         printf("========================================================\n");
@@ -489,14 +482,14 @@ static void Print_Instrument(struct Cache *pcache, const char *msg)
 
     if (Short_Output)
     {
-        printf("hits %.1f\n", 
+        printf("hits %.1f\n",
                ((double)pinstr->n_hits)/(pinstr->n_reads + pinstr->n_writes)*100);
     }
     else
     {
         printf("\n%s : \n", msg == NULL ? "" : msg);
         printf("\t%d lectures %d écritures %d succès (%.1f %%)\n",
-               pinstr->n_reads, pinstr->n_writes, pinstr->n_hits, 
+               pinstr->n_reads, pinstr->n_writes, pinstr->n_hits,
                ((double)pinstr->n_hits)/(pinstr->n_reads + pinstr->n_writes)*100);
         printf("\t%d syncs %d déréférençages\n", pinstr->n_syncs, pinstr->n_deref);
     }
@@ -509,28 +502,28 @@ static void Usage(const char *execname)
 {
     printf("\nUsage: %s [options]\n", execname);
     printf("\nOptions générales\n"
-           "-----------------\n"
-           "-h\tce message\n"
-           "-p\taffiche les paramètres du cache sans exécuter de test\n"
-           "-S\tformat de sortie court");
+                   "-----------------\n"
+                   "-h\tce message\n"
+                   "-p\taffiche les paramètres du cache sans exécuter de test\n"
+                   "-S\tformat de sortie court");
     printf("\nOptions de configuration du cache\n"
-           "---------------------------------\n"
-           "-f file\tnom du fichier\n"
-           "-N nr\tnombre d'enregistrements dans le fichier\n"
-           "-R nrb\tnombre d'enregistrements par bloc du cache\n" 
-           "-r rfc\trapport taille fichier / taille cache\n");
+                   "---------------------------------\n"
+                   "-f file\tnom du fichier\n"
+                   "-N nr\tnombre d'enregistrements dans le fichier\n"
+                   "-R nrb\tnombre d'enregistrements par bloc du cache\n"
+                   "-r rfc\trapport taille fichier / taille cache\n");
     printf("\nOptions de configuration des tests\n"
-           "----------------------------------\n"
-           "-t nt\tactive le test nt ; il peut y avoir plusieurs options -t\n"
-           "\t(nt de 1 à %d)\n", NTESTS);
+                   "----------------------------------\n"
+                   "-t nt\tactive le test nt ; il peut y avoir plusieurs options -t\n"
+                   "\t(nt de 1 à %d)\n", NTESTS);
     printf("-l nl\tle nombre d'accès dans les tests 2 à 4 sera 'nl * nr'\n"
-           "-w rwr\trapport nombre lectures / nombre écritures (tests 3 et 4)\n"
-           "-s ns\tnombre de blocs à lire séquentiellement (test 3)\n"
-           "-W nws\tnombre de working sets (tests 4 et 5)\n"
-           "-L nl\tlongueur de la fenêtre de localité (test 4 et 5)\n"
-           "-d dr\tpériode de déréférençage pour NUR\n");
+                   "-w rwr\trapport nombre lectures / nombre écritures (tests 3 et 4)\n"
+                   "-s ns\tnombre de blocs à lire séquentiellement (test 3)\n"
+                   "-W nws\tnombre de working sets (tests 4 et 5)\n"
+                   "-L nl\tlongueur de la fenêtre de localité (test 4 et 5)\n"
+                   "-d dr\tpériode de déréférençage pour NUR\n");
 }
-    
+
 /* Analyse des arguments 
  * ----------------------
  */
@@ -543,80 +536,80 @@ static void Scan_Args(int argc, char *argv[])
 
     for (i = 1; i < argc; i++)
     {
-	if (argv[i][0] == '-')
-	{
-	    switch (argv[i][1])
-	    {
+        if (argv[i][0] == '-')
+        {
+            switch (argv[i][1])
+            {
                 /* Options générales */
 
-	    case 'h':
-		Usage(argv[0]);
-		exit(1);
-            case 'p':
-                just_print = 1;
-                break;
-            case 'S':
-                Short_Output = 1;
-                break;
-
-                /* Options de configuration du cache */
-
-	    case 'f':
-		File = argv[++i];
-		break;	    
-	    case 'N':
-		N_Records_in_File = atoi(argv[++i]);
-		break;
-	    case 'R':
-		N_Records_per_Block = atoi(argv[++i]);
-		break;
-	    case 'r':
-		Ratio_File_Cache = atoi(argv[++i]);
-		break;
-
-                /* Options de configuration des tests */
-
-            case 't':
-		numtest = atoi(argv[++i]);
-                if (numtest >= 1 && numtest <= NTESTS) 
-                {
-                    Do_Test[numtest - 1] = 1;
-                    ++ntests;
-                }
-                else 
-                {
+                case 'h':
                     Usage(argv[0]);
                     exit(1);
-                }
-		break;
-	    case 'l':
-		N_Loops = atoi(argv[++i]);
-		break;
-	    case 'w':
-		Ratio_Read_Write = atoi(argv[++i]);
-		break;
-            case 's':
-                N_Seq_Access = atoi(argv[++i]);
-		break;          
-            case 'W':
-                N_Working_Sets = atoi(argv[++i]);
-		break;            
-            case 'L':
-                N_Local_Window = atoi(argv[++i]);
-		break;
-            case 'd':
-                N_Deref = atoi(argv[++i]);
-                break;
-	    default:
-		fprintf(stderr, "Option inconnue : %s\n", argv[i]);
-		exit(1);
-	    }
-	}
-	else
-	{
-	    Usage(argv[0]);
-	    exit(1);
-	}
+                case 'p':
+                    just_print = 1;
+                    break;
+                case 'S':
+                    Short_Output = 1;
+                    break;
+
+                    /* Options de configuration du cache */
+
+                case 'f':
+                    File = argv[++i];
+                    break;
+                case 'N':
+                    N_Records_in_File = atoi(argv[++i]);
+                    break;
+                case 'R':
+                    N_Records_per_Block = atoi(argv[++i]);
+                    break;
+                case 'r':
+                    Ratio_File_Cache = atoi(argv[++i]);
+                    break;
+
+                    /* Options de configuration des tests */
+
+                case 't':
+                    numtest = atoi(argv[++i]);
+                    if (numtest >= 1 && numtest <= NTESTS)
+                    {
+                        Do_Test[numtest - 1] = 1;
+                        ++ntests;
+                    }
+                    else
+                    {
+                        Usage(argv[0]);
+                        exit(1);
+                    }
+                    break;
+                case 'l':
+                    N_Loops = atoi(argv[++i]);
+                    break;
+                case 'w':
+                    Ratio_Read_Write = atoi(argv[++i]);
+                    break;
+                case 's':
+                    N_Seq_Access = atoi(argv[++i]);
+                    break;
+                case 'W':
+                    N_Working_Sets = atoi(argv[++i]);
+                    break;
+                case 'L':
+                    N_Local_Window = atoi(argv[++i]);
+                    break;
+                case 'd':
+                    N_Deref = atoi(argv[++i]);
+                    break;
+                default:
+                    fprintf(stderr, "Option inconnue : %s\n", argv[i]);
+                    exit(1);
+            }
+        }
+        else
+        {
+            Usage(argv[0]);
+            exit(1);
+        }
     }
 
     N_Loops = N_Loops * N_Records_in_File;
@@ -631,8 +624,7 @@ static void Scan_Args(int argc, char *argv[])
     if (ntests == 0)
     {
         // Aucun test choisi : on les active tous
-        for (i = 0; i < NTESTS; ++i) 
+        for (i = 0; i < NTESTS; ++i)
             Do_Test[i] = true;
     }
 }
-
