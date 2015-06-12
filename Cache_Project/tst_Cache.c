@@ -166,10 +166,12 @@ int main(int argc, char *argv[])
     Print_Parameters();
 
     /* Exécution des tests */
-    for (i = 0; i < NTESTS; ++i)
-    {
-        if (Do_Test[i]) Tests[i]();
-    }
+    if (Do_Test[0]) Tests[0]();
+    if (Do_Test[1]) Tests[1]();
+    if (Do_Test[2]) Tests[2]();
+    if (Do_Test[3]) Tests[3]();
+    if (Do_Test[4]) Tests[4]();
+    if (Do_Test[5]) Tests[5]();
 
     /* Fermeture du cache */
     if (!Cache_Close(The_Cache)) Error("Cache_Close");

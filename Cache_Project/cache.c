@@ -17,7 +17,7 @@ struct Cache *Cache_Create(const char *fic, unsigned nblocks, unsigned nrecords,
     struct Cache* cache = (struct Cache*) malloc(sizeof(struct Cache));
     cache->file = (char*)malloc( sizeof(char) * (strlen(fic)+1) );
     strcpy(cache->file, fic);
-    cache->fp = fopen(fic, "r+" );
+    cache->fp = fopen(fic, "a+" );
     cache->nblocks = nblocks;
     cache->nrecords = nrecords;
     cache->recordsz = recordsz;
@@ -73,7 +73,6 @@ Cache_Error Cache_Sync(struct Cache *pcache){
     struct Cache_Block_Header* header = NULL;
     for( int i = 0; i < pcache->nblocks; i++){
 
-
         if( (header = pcache->headers+i)->flags & MODIF ){
 
             if( fseek(pcache->fp, header->ibfile,SEEK_SET ) == EOF ){
@@ -121,31 +120,24 @@ Cache_Error Cache_Read(struct Cache *pcache, int irfile, void *precord){
         if( h->ibfile == irfile )break;
     }
 
-    //printf(" %d %d  i:%d j:%d \n", h->ibfile, irfile, i, j);
-    //getchar();
-
     //ON l a trouvé
-    if( h->ibfile == irfile && h->data != NULL){
+    if( h->ibfile == irfile && h->data != NULL && h->flags & VALID){
         memcpy(precord, h->data ,pcache->recordsz);
     }
     else {//Cherche bloque libre
         pcache->instrument.n_hits --;
         char buffer[pcache->recordsz];
-
         h = Strategy_Replace_Block(pcache);
         if (fseek(pcache->fp, irfile, SEEK_SET) == EOF)return CACHE_KO;
-
         //on remplie les petit block
-        for (int i = 0; i < pcache->nrecords; i++) {
+        for (int i = 0; i < pcache->nrecords; i++) { ;
             if (fgets(buffer, pcache->recordsz, pcache->fp) == NULL) return CACHE_KO;
 
             char a [(int)(pcache->nrecords * pcache->recordsz) / sizeof(char)];
             h[i].data = a;
-
             if( i == 0 ) strcat(precord, buffer);
             strcat(h[i].data, buffer);
             h[i].ibfile = irfile++;
-            h[i].flags &= ~MODIF;
         }
 
 
@@ -187,7 +179,7 @@ Cache_Error Cache_Write(struct Cache *pcache, int irfile, const void *precord)
     }
 
     //ON l'a pas trouvé
-    if( !(h->ibfile == irfile && h->data != NULL)){
+    if( !(h->ibfile == irfile && h->data != NULL)  ){
         pcache->instrument.n_hits --;
         h = Strategy_Replace_Block(pcache);
         h->ibfile = irfile;
