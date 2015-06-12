@@ -41,7 +41,7 @@ struct Cache_Block_Header *Cache_List_Remove(struct Cache_List *list,
 void Cache_List_Clear(struct Cache_List *list);
 
 /*! Test de liste vide */
-bool Cache_List_Is_Empty(struct Cache_List *list);
+int Cache_List_Is_Empty(struct Cache_List *list);
 
 /*! Transférer un élément à la fin */
 void Cache_List_Move_To_End(struct Cache_List *list,
