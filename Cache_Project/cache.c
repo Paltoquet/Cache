@@ -73,6 +73,7 @@ Cache_Error Cache_Sync(struct Cache *pcache){
     struct Cache_Block_Header* header = NULL;
     for( int i = 0; i < pcache->nblocks; i++){
 
+
         if( (header = pcache->headers+i)->flags & MODIF ){
 
             if( fseek(pcache->fp, header->ibfile,SEEK_SET ) == EOF ){
